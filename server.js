@@ -4,10 +4,12 @@ const fileUpload = require('express-fileupload');
 const dotenv = require('dotenv');
 const productRoutes = require('./routes/product');
 const { errorHandler } = require('./middleware/errorHandler');
+const cors = require('cors');
 
 dotenv.config();
 
 const app = express();
+app.use(cors());
 const PORT = process.env.PORT || 3002;
 
 app.use(express.json());
