@@ -53,6 +53,34 @@ exports.getProducts = async (req, res) => {
   }
 };
 
+exports.getProductById = async (req, res) => {
+  try {
+    // Extract product ID from route parameters
+    const { id } = req.params;
+
+    // Find product by ID
+    const product = await Product.findById(id);
+
+    // Check if product exists
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Return product details
+    res.status(200).json(product);
+  } catch (error) {
+    console.error('Error fetching product by ID:', error);
+
+    // Handle invalid ObjectId error specifically
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+
+    res.status(500).json({ message: 'Error fetching product', error });
+  }
+};
+
+
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -118,4 +146,23 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
+exports.getSellerProducts = async (req, res) => {
+  try {
+    // Extract sellerId from authenticated user
+    const sellerId = req.user.userId;
 
+    // Fetch products belonging to the seller
+    const products = await Product.find({ sellerId });
+
+    // Check if products exist
+    if (!products.length) {
+      return res.status(404).json({ message: 'No products found for this seller' });
+    }
+
+    // Return the seller's products
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Error fetching seller products:', error);
+    res.status(500).json({ message: 'Error fetching seller products', error });
+  }
+};
