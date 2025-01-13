@@ -116,17 +116,19 @@ exports.deleteProduct = async (req, res) => {
     const region = 'eu-north-1'; // Your bucket region
 
     // Validate the image URL
-    const bucketDomain = `https://${bucketName}.s3.amazonaws.com/`;
-    // console.log('bd: ', bucketDomain)
-    // console.log('url: ', imageUrl)
-    // console.log('startwith: ', imageUrl.startsWith(bucketDomain))
+    const bucketDomain = `https://${bucketName}.s3.amazonaws.com/;`
+    const bucketDomain2 =`https://${bucketName}.s3.${region}.amazonaws.com/`;
+    console.log('bd: ', bucketDomain)
+    console.log('url: ', imageUrl)
+    console.log('bd1 startwith: ', imageUrl.startsWith(bucketDomain))
+    console.log('bd2 startwith: ', imageUrl.startsWith(bucketDomain2))
 
-    if (!imageUrl.startsWith(bucketDomain)) {
+    if (!imageUrl.startsWith(bucketDomain) && !imageUrl.startsWith(bucketDomain2)) {
       return res.status(400).json({ message: 'Invalid image URL' });
     }
 
     // Extract the key
-    const key = imageUrl.replace(bucketDomain, '');
+    const key = imageUrl.split(".com/")[1];
 
     // Delete the image from the S3 bucket
     const deleteParams = {
