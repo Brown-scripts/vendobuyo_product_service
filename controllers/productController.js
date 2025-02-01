@@ -1,10 +1,40 @@
 const Product = require('../models/Product');
+const Shop = require('../models/Shop');
 const upload = require('../utils/upload');
 const s3 = require('../utils/aws-config');
 
+exports.createShop = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const sellerId = req.user.userId; // Get the logged-in seller's ID
+
+    // Check if the seller already has a shop with the same name
+    const existingShop = await Shop.findOne({ name, sellerId });
+
+    if (existingShop) {
+      return res.status(400).json({ message: 'You already have a shop with this name' });
+    }
+
+    // Create a new shop
+    const shop = new Shop({
+      name,
+      description,
+      sellerId,
+    });
+
+    await shop.save();
+
+    res.status(201).json(shop);
+  } catch (error) {
+    console.error('Error creating shop:', error);
+    res.status(500).json({ message: 'Error creating shop', error });
+  }
+};
+
+
 exports.createProduct = async (req, res) => {
   try {
-    const { title, description, price, stockQuantity } = req.body;
+    const { title, description, price, stockQuantity, shopId } = req.body;
 
     // Check if the file exists in the request
     if (!req.files || !req.files.image) {
@@ -30,6 +60,7 @@ exports.createProduct = async (req, res) => {
       title,
       description,
       price,
+      shopId,
       imageUrl: uploadResult.Location, // The public URL of the uploaded image
       stockQuantity,
       sellerId: req.user.userId,
@@ -50,6 +81,42 @@ exports.getProducts = async (req, res) => {
     res.json(products);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching products' });
+  }
+};
+
+exports.getShops = async (req, res) => {
+  try {
+    const shops = await Shop.find();
+    res.json(shops);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching shops' });
+  }
+};
+
+exports.getShopById = async (req, res) => {
+  try {
+    // Extract shop ID from route parameters
+    const { id } = req.params;
+
+    // Find shop by ID
+    const shop = await Shop.findById(id);
+
+    // Check if shop exists
+    if (!shop) {
+      return res.status(404).json({ message: 'Shop not found' });
+    }
+
+    // Return product details
+    res.status(200).json(shop);
+  } catch (error) {
+    console.error('Error fetching shop by ID:', error);
+
+    // Handle invalid ObjectId error specifically
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid shop ID format' });
+    }
+
+    res.status(500).json({ message: 'Error fetching shop', error });
   }
 };
 
@@ -81,6 +148,24 @@ exports.getProductById = async (req, res) => {
 };
 
 
+exports.updateShop = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+    const shop = await Shop.findOneAndUpdate(
+      { _id: id, sellerId: req.user.userId },
+      { name, description },
+      { new: true }
+    );
+    if (!shop) {
+      return res.status(404).json({ message: 'Shop not found or unauthorized' });
+    }
+    res.json(shop);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating shop' });
+  }
+};
+
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -96,6 +181,27 @@ exports.updateProduct = async (req, res) => {
     res.json(product);
   } catch (error) {
     res.status(500).json({ message: 'Error updating product' });
+  }
+};
+
+exports.deleteShop = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the product by ID and sellerId
+    const shop = await Shop.findOne({ _id: id, sellerId: req.user.userId });
+
+    if (!shop) {
+      return res.status(404).json({ message: 'Shop not found or unauthorized' });
+    }
+
+    // Delete the shop from the database
+    await Shop.findByIdAndDelete(id);
+
+    res.json({ message: 'Shop deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting shop:', error);
+    res.status(500).json({ message: 'Error deleting shop', error });
   }
 };
 
@@ -117,7 +223,7 @@ exports.deleteProduct = async (req, res) => {
 
     // Validate the image URL
     const bucketDomain = `https://${bucketName}.s3.amazonaws.com/;`
-    const bucketDomain2 =`https://${bucketName}.s3.${region}.amazonaws.com/`;
+    const bucketDomain2 = `https://${bucketName}.s3.${region}.amazonaws.com/`;
     console.log('bd: ', bucketDomain)
     console.log('url: ', imageUrl)
     console.log('bd1 startwith: ', imageUrl.startsWith(bucketDomain))
@@ -166,5 +272,46 @@ exports.getSellerProducts = async (req, res) => {
   } catch (error) {
     console.error('Error fetching seller products:', error);
     res.status(500).json({ message: 'Error fetching seller products', error });
+  }
+};
+
+exports.getSellerShops = async (req, res) => {
+  try {
+    // Extract sellerId from authenticated user
+    const sellerId = req.user.userId;
+
+    // Fetch products belonging to the seller
+    const shops = await Shop.find({ sellerId });
+
+    // Check if shops exist
+    if (!shops.length) {
+      return res.status(404).json({ message: 'No shops found for this seller' });
+    }
+
+    // Return the seller's shops
+    res.status(200).json(shops);
+  } catch (error) {
+    console.error('Error fetching seller shops:', error);
+    res.status(500).json({ message: 'Error fetching seller shops', error });
+  }
+};
+
+exports.getShopProducts = async (req, res) => {
+  try {
+    const { shopId } = req.params
+
+    // Fetch all products in the shop
+    const products = await Product.find({ shopId });
+
+    // Check if products exist
+    if (!products.length) {
+      return res.status(404).json({ message: 'No products found for this shop' });
+    }
+
+    // Return the seller's products
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Error fetching shop products:', error);
+    res.status(500).json({ message: 'Error fetching shop products', error });
   }
 };

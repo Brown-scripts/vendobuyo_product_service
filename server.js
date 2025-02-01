@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const fileUpload = require("express-fileupload");
 const dotenv = require("dotenv");
 const productRoutes = require("./routes/product");
+const shopRoutes = require("./routes/shop");
 const { errorHandler } = require("./middleware/errorHandler");
 const cors = require("cors");
 
@@ -27,6 +28,7 @@ app.get("/test", (req, res) => {
 
 // Routes
 app.use("", productRoutes);
+app.use("/shops", shopRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
