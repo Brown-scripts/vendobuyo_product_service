@@ -3,8 +3,6 @@ const Product = require('../models/Product');
 const Shop = require('../models/Shop');
 const upload = require('../utils/upload');
 const s3 = require('../utils/aws-config');
-const { client } = require('../utils/elasticSearch'); // Import Elasticsearch client
-
 
 exports.createShop = async (req, res) => {
   try {
@@ -27,25 +25,12 @@ exports.createShop = async (req, res) => {
 
     await shop.save();
 
-    // Index shop in Elasticsearch
-    // await client.index({
-    //   index: 'shops',
-    //   id: shop._id.toString(),
-    //   body: {
-    //     name,
-    //     description,
-    //     sellerId,
-    //   },
-    // });
-
     res.status(201).json(shop);
   } catch (error) {
     console.error('Error creating shop:', error);
     res.status(500).json({ message: 'Error creating shop', error });
   }
 };
-
-
 
 exports.createProduct = async (req, res) => {
   try {
@@ -83,28 +68,12 @@ exports.createProduct = async (req, res) => {
 
     await product.save();
 
-    // Index product in Elasticsearch
-    // await client.index({
-    //   index: 'products',
-    //   id: product._id.toString(),
-    //   body: {
-    //     title,
-    //     description,
-    //     price,
-    //     stockQuantity,
-    //     shopId,
-    //     sellerId: req.user.userId,
-    //     imageUrl: uploadResult.Location,
-    //   },
-    // });
-
     res.status(201).json(product);
   } catch (error) {
     console.error('Error creating product:', error);
     res.status(500).json({ message: 'Error creating product', error });
   }
 };
-
 
 exports.getProducts = async (req, res) => {
   try {
@@ -151,7 +120,6 @@ exports.getShopById = async (req, res) => {
   }
 };
 
-
 exports.getProductById = async (req, res) => {
   try {
     // Extract product ID from route parameters
@@ -179,7 +147,6 @@ exports.getProductById = async (req, res) => {
   }
 };
 
-
 exports.updateShop = async (req, res) => {
   try {
     const { id } = req.params;
@@ -195,25 +162,12 @@ exports.updateShop = async (req, res) => {
       return res.status(404).json({ message: 'Shop not found or unauthorized' });
     }
 
-    // Update shop in Elasticsearch
-    // await client.update({
-    //   index: 'shops',
-    //   id: shop._id.toString(),
-    //   body: {
-    //     doc: {
-    //       name,
-    //       description,
-    //     },
-    //   },
-    // });
-
     res.json(shop);
   } catch (error) {
     console.error('Error updating shop:', error);
     res.status(500).json({ message: 'Error updating shop' });
   }
 };
-
 
 exports.updateProduct = async (req, res) => {
   try {
@@ -230,28 +184,12 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found or unauthorized' });
     }
 
-    // Update product in Elasticsearch
-    // await client.update({
-    //   index: 'products',
-    //   id: product._id.toString(),
-    //   body: {
-    //     doc: {
-    //       title,
-    //       description,
-    //       price,
-    //       stockQuantity,
-    //       imageUrl,
-    //     },
-    //   },
-    // });
-
     res.json(product);
   } catch (error) {
     console.error('Error updating product:', error);
     res.status(500).json({ message: 'Error updating product' });
   }
 };
-
 
 exports.deleteShop = async (req, res) => {
   try {
@@ -264,12 +202,6 @@ exports.deleteShop = async (req, res) => {
       return res.status(404).json({ message: 'Shop not found or unauthorized' });
     }
 
-    // Delete the shop from Elasticsearch
-    // await client.delete({
-    //   index: 'shops',
-    //   id: shop._id.toString(),
-    // });
-
     // Delete the shop from the database
     await Shop.findByIdAndDelete(id);
 
@@ -279,7 +211,6 @@ exports.deleteShop = async (req, res) => {
     res.status(500).json({ message: 'Error deleting shop', error });
   }
 };
-
 
 exports.deleteProduct = async (req, res) => {
   try {
@@ -315,12 +246,6 @@ exports.deleteProduct = async (req, res) => {
     };
 
     await s3.deleteObject(deleteParams).promise();
-
-    // Delete the product from Elasticsearch
-    // await client.delete({
-    //   index: 'products',
-    //   id: product._id.toString(),
-    // });
 
     // Delete the product from the database
     await Product.findByIdAndDelete(id);
@@ -358,7 +283,7 @@ exports.getSellerShops = async (req, res) => {
     // Extract sellerId from authenticated user
     const sellerId = req.user.userId;
 
-    // Fetch products belonging to the seller
+    // Fetch shops belonging to the seller
     const shops = await Shop.find({ sellerId });
 
     // Check if shops exist
@@ -376,7 +301,7 @@ exports.getSellerShops = async (req, res) => {
 
 exports.getShopProducts = async (req, res) => {
   try {
-    const { shopId } = req.params
+    const { shopId } = req.params;
 
     // Fetch all products in the shop
     const products = await Product.find({ shopId });
@@ -386,7 +311,7 @@ exports.getShopProducts = async (req, res) => {
       return res.status(404).json({ message: 'No products found for this shop' });
     }
 
-    // Return the seller's products
+    // Return the shop's products
     res.status(200).json(products);
   } catch (error) {
     console.error('Error fetching shop products:', error);
@@ -409,11 +334,13 @@ exports.searchProducts = async (req, res) => {
       ]
     });
 
-    // Return only products, no shops
-    res.json({ products });
+    if (!products.length) {
+      return res.status(404).json({ message: 'No products found' });
+    }
+
+    res.status(200).json(products);
   } catch (error) {
-    console.error('Search error:', error);
-    res.status(500).json({ error: 'Search failed' });
+    console.error('Error searching for products:', error);
+    res.status(500).json({ message: 'Error searching for products' });
   }
 };
-
