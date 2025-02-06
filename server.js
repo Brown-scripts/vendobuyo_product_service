@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const fileUpload = require("express-fileupload");
@@ -6,6 +7,7 @@ const productRoutes = require("./routes/product");
 const shopRoutes = require("./routes/shop");
 const { errorHandler } = require("./middleware/errorHandler");
 const cors = require("cors");
+// const { client, initializeIndexes } = require("./utils/elasticSearch");
 
 dotenv.config();
 
@@ -22,6 +24,10 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
+// Initialize Elasticsearch indices
+// initializeIndexes();
+
+// Test route
 app.get("/test", (req, res) => {
   res.status(200).json({ message: "Hello from VendobuyoAPI!" });
 });
