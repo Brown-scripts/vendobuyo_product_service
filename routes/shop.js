@@ -10,5 +10,6 @@ router.get('/seller', authenticateSeller, getSellerShops);
 router.get('/shop/:id', authenticate, getShopById);
 router.put('/shop/:id', authenticateSellerOrAdmin, updateShop);
 router.delete('/shop/:id', authenticateSellerOrAdmin, deleteShop);
+router.get('/seller/:sellerId', authenticateSellerOrAdmin, getSellerShopsByAdmin);
 
 module.exports = router;

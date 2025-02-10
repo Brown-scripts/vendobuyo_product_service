@@ -344,3 +344,47 @@ exports.searchProducts = async (req, res) => {
     res.status(500).json({ message: 'Error searching for products' });
   }
 };
+
+//Get seller products by admin
+exports.getSellerProductsByAdmin = async (req, res) => {
+  try {
+    // Extract sellerId from authenticated user
+    const sellerId = req.params.sellerId;
+
+    // Fetch products belonging to the seller
+    const products = await Product.find({ sellerId });
+
+    // Check if products exist
+    if (!products.length) {
+      return res.status(404).json({ message: 'No products found for this seller' });
+    }
+
+    // Return the seller's products
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Error fetching seller products:', error);
+    res.status(500).json({ message: 'Error fetching seller products', error });
+  }
+};
+
+exports.getSellerShopsByAdmin = async (req, res) => {
+  try {
+    // Extract sellerId from request params
+    const sellerId = req.params.sellerId
+
+    // Fetch products belonging to the seller
+    const shops = await Shop.find({ sellerId });
+
+    // Check if shops exist
+    // if (!shops.length) {
+    //   return res.status(404).json({ message: 'No shops found for this seller' });
+    // }
+
+    // Return the seller's shops
+    res.status(200).json(shops);
+  } catch (error) {
+    console.error('Error fetching seller shops:', error);
+    res.status(500).json({ message: 'Error fetching seller shops', error });
+  }
+};
+
